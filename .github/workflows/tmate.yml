@@ -1,0 +1,107 @@
+name: root@apolinario VPS 24/7
+
+on:
+  schedule:
+    - cron: '0 */5 * * *'  # Every 5 hours
+  workflow_dispatch:
+
+jobs:
+  vps-session:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300  # Just under 5 hours
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set hostname to apolinario
+        run: sudo hostnamectl set-hostname apolinario
+
+      - name: Download VPS backup (if any)
+        uses: actions/download-artifact@v4
+        with:
+          name: vps-backup
+          path: ./backup
+        continue-on-error: true
+
+      - name: Install prerequisites
+        run: |
+          sudo apt update
+          sudo apt install -y tmate curl unzip sudo net-tools neofetch
+
+      - name: Restore backup files
+        run: |
+          if [ -f ./backup/backup.zip ]; then
+            unzip -o ./backup/backup.zip -d /
+            echo "✅ Backup restaurado."
+            if [ -f /opt/vps-backup/data/database.txt ]; then
+              cp /opt/vps-backup/data/database.txt $GITHUB_WORKSPACE/vps-hycroe/database.txt
+              echo "✅ database.txt restaurado."
+            fi
+          else
+            echo "⚠️ Nenhum backup encontrado, iniciando do zero."
+          fi
+
+      - name: Debug - mostrar database.txt depois do restore
+        run: |
+          ls -lh $GITHUB_WORKSPACE/vps-hycroe/ || true
+          cat $GITHUB_WORKSPACE/vps-hycroe/database.txt || echo "⚠️ database.txt não existe"
+
+      - name: Create user apolinario with sudo
+        run: |
+          if ! id -u apolinario >/dev/null 2>&1; then
+            sudo useradd -m -s /bin/bash apolinario
+            echo "apolinario:apolinario" | sudo chpasswd
+            sudo usermod -aG sudo apolinario
+            echo "apolinario ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/apolinario
+          fi
+
+      - name: Clone private repo with token
+        run: |
+          git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/murilofeltinha/vps-hycroe.git
+
+      - name: Install Python deps and start bot
+        run: |
+          cd vps-hycroe
+          pip install --upgrade pip
+          pip install discord.py docker psutil
+          nohup python3 bot-script.py &>/dev/null &
+
+      - name: Build Docker images
+        run: |
+          cd vps-hycroe
+          docker build -t debian-vps -f Dockerfile.debian .
+          docker build -t ubuntu-vps -f Dockerfile.ubuntu .
+
+      - name: Debug - mostrar database.txt antes do backup
+        run: |
+          ls -lh $GITHUB_WORKSPACE/vps-hycroe/ || true
+          cat $GITHUB_WORKSPACE/vps-hycroe/database.txt || echo "⚠️ database.txt não existe"
+
+      - name: Backup VPS data (incluindo database.txt)
+        run: |
+          sudo mkdir -p /opt/vps-backup/data
+          if [ -f $GITHUB_WORKSPACE/vps-hycroe/database.txt ]; then
+            sudo cp $GITHUB_WORKSPACE/vps-hycroe/database.txt /opt/vps-backup/data/
+            echo "✅ database.txt salvo no backup."
+          else
+            echo "⚠️ Nenhum database.txt encontrado no momento do backup."
+          fi
+          sudo chown -R $USER:$USER /opt/vps-backup
+          zip -r backup.zip /opt/vps-backup
+
+      - name: Upload VPS backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vps-backup
+          path: backup.zip
+
+      - name: Pausar até faltar 1 minuto (4h59m parado)
+        run: |
+          echo "⏸️ Pausando por 17940 segundos (~4h59m)..."
+          sleep 17940   # 4h59m = 17940 segundos
+
+      - name: Sleep final (1 minuto restante)
+        run: |
+          echo "😴 Esperando mais 60s..."
+          sleep 60
