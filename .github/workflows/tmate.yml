@@ -35,7 +35,7 @@ jobs:
             unzip -o ./backup/backup.zip -d /
             echo "✅ Backup restaurado."
             if [ -f /opt/vps-backup/data/database.txt ]; then
-              cp /opt/vps-backup/data/database.txt $GITHUB_WORKSPACE/vps-hycroe/database.txt
+              cp /opt/vps-backup/data/database.txt $GITHUB_WORKSPACE/teste2/database.txt
               echo "✅ database.txt restaurado."
             fi
           else
@@ -44,8 +44,8 @@ jobs:
 
       - name: Debug - mostrar database.txt depois do restore
         run: |
-          ls -lh $GITHUB_WORKSPACE/vps-hycroe/ || true
-          cat $GITHUB_WORKSPACE/vps-hycroe/database.txt || echo "⚠️ database.txt não existe"
+          ls -lh $GITHUB_WORKSPACE/teste2/ || true
+          cat $GITHUB_WORKSPACE/teste2/database.txt || echo "⚠️ database.txt não existe"
 
       - name: Create user apolinario with sudo
         run: |
@@ -58,31 +58,31 @@ jobs:
 
       - name: Clone private repo with token
         run: |
-          git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/murilofeltinha/vps-hycroe.git
+          git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste2.git
 
       - name: Install Python deps and start bot
         run: |
-          cd vps-hycroe
+          cd teste2
           pip install --upgrade pip
           pip install discord.py docker psutil
           nohup python3 bot-script.py &>/dev/null &
 
       - name: Build Docker images
         run: |
-          cd vps-hycroe
+          cd teste2
           docker build -t debian-vps -f Dockerfile.debian .
           docker build -t ubuntu-vps -f Dockerfile.ubuntu .
 
       - name: Debug - mostrar database.txt antes do backup
         run: |
-          ls -lh $GITHUB_WORKSPACE/vps-hycroe/ || true
-          cat $GITHUB_WORKSPACE/vps-hycroe/database.txt || echo "⚠️ database.txt não existe"
+          ls -lh $GITHUB_WORKSPACE/teste2/ || true
+          cat $GITHUB_WORKSPACE/teste2/database.txt || echo "⚠️ database.txt não existe"
 
       - name: Backup VPS data (incluindo database.txt)
         run: |
           sudo mkdir -p /opt/vps-backup/data
-          if [ -f $GITHUB_WORKSPACE/vps-hycroe/database.txt ]; then
-            sudo cp $GITHUB_WORKSPACE/vps-hycroe/database.txt /opt/vps-backup/data/
+          if [ -f $GITHUB_WORKSPACE/teste2/database.txt ]; then
+            sudo cp $GITHUB_WORKSPACE/teste2/database.txt /opt/vps-backup/data/
             echo "✅ database.txt salvo no backup."
           else
             echo "⚠️ Nenhum database.txt encontrado no momento do backup."
