@@ -11,7 +11,7 @@ jobs:
     timeout-minutes: 300  # Just under 5 hours
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repo (teste)
         uses: actions/checkout@v4
 
       - name: Set hostname to apolinario
@@ -32,11 +32,11 @@ jobs:
       - name: Restore backup files
         run: |
           if [ -f ./backup/backup.zip ]; then
-            unzip -o ./backup/backup.zip -d /
+            unzip -o ./backup/backup.zip -d /opt/vps-backup
             echo "✅ Backup restaurado."
             if [ -f /opt/vps-backup/data/database.txt ]; then
-              cp /opt/vps-backup/data/database.txt $GITHUB_WORKSPACE/teste2/database.txt
-              echo "✅ database.txt restaurado."
+              cp /opt/vps-backup/data/database.txt $GITHUB_WORKSPACE/database.txt
+              echo "✅ database.txt restaurado no repo teste."
             fi
           else
             echo "⚠️ Nenhum backup encontrado, iniciando do zero."
@@ -44,10 +44,10 @@ jobs:
 
       - name: Debug - mostrar database.txt depois do restore
         run: |
-          echo "📂 Conteúdo da pasta teste2:"
-          ls -lh $GITHUB_WORKSPACE/teste2/ || true
+          echo "📂 Conteúdo da pasta teste:"
+          ls -lh $GITHUB_WORKSPACE/ || true
           echo "📄 Conteúdo do database.txt:"
-          cat $GITHUB_WORKSPACE/teste2/database.txt || echo "⚠️ database.txt não existe"
+          cat $GITHUB_WORKSPACE/database.txt || echo "⚠️ database.txt não existe"
 
       - name: Create user apolinario with sudo
         run: |
@@ -58,7 +58,7 @@ jobs:
             echo "apolinario ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/apolinario
           fi
 
-      - name: Clone private repo with token
+      - name: Clone bot repo (teste2)
         run: |
           git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste2.git
 
@@ -78,7 +78,7 @@ jobs:
       - name: Pausar até faltar 1 minuto (4h56m)
         run: |
           echo "⏸️ Pausando por 17800 segundos (~4h56m)..."
-          sleep 17800   # 4h56m
+          sleep 17800
 
       - name: Sleep final (1 minuto restante)
         run: |
@@ -87,16 +87,16 @@ jobs:
 
       - name: Debug - mostrar database.txt antes do backup
         run: |
-          echo "📂 Conteúdo da pasta teste2 antes do backup:"
-          ls -lh $GITHUB_WORKSPACE/teste2/ || true
+          echo "📂 Conteúdo da pasta teste antes do backup:"
+          ls -lh $GITHUB_WORKSPACE/ || true
           echo "📄 Conteúdo do database.txt:"
-          cat $GITHUB_WORKSPACE/teste2/database.txt || echo "⚠️ database.txt não existe"
+          cat $GITHUB_WORKSPACE/database.txt || echo "⚠️ database.txt não existe"
 
       - name: Backup VPS data (incluindo database.txt)
         run: |
           sudo mkdir -p /opt/vps-backup/data
-          if [ -f $GITHUB_WORKSPACE/teste2/database.txt ]; then
-            sudo cp $GITHUB_WORKSPACE/teste2/database.txt /opt/vps-backup/data/
+          if [ -f $GITHUB_WORKSPACE/database.txt ]; then
+            sudo cp $GITHUB_WORKSPACE/database.txt /opt/vps-backup/data/
             echo "✅ database.txt salvo no backup."
           else
             echo "⚠️ Nenhum database.txt encontrado no momento do backup."
@@ -104,13 +104,13 @@ jobs:
           sudo chown -R $USER:$USER /opt/vps-backup
           zip -r backup.zip /opt/vps-backup
 
-      - name: Commit & push backup
+      - name: Commit & push backup (para repo teste)
         run: |
           git config --global user.name "Apolinario"
           git config --global user.email "apolinario@example.com"
           git add backup.zip
           git commit -m "Atualizando backup da VPS"
-          git push https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste2.git
+          git push https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste.git
 
       - name: Upload VPS backup artifact
         uses: actions/upload-artifact@v4
