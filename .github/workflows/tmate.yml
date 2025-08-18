@@ -27,7 +27,7 @@ jobs:
       - name: Install prerequisites
         run: |
           sudo apt update
-          sudo apt install -y tmate curl unzip sudo net-tools neofetch
+          sudo apt install -y tmate curl unzip sudo net-tools neofetch git python3-pip docker.io
 
       - name: Restore backup files
         run: |
@@ -44,7 +44,9 @@ jobs:
 
       - name: Debug - mostrar database.txt depois do restore
         run: |
+          echo "📂 Conteúdo da pasta teste2:"
           ls -lh $GITHUB_WORKSPACE/teste2/ || true
+          echo "📄 Conteúdo do database.txt:"
           cat $GITHUB_WORKSPACE/teste2/database.txt || echo "⚠️ database.txt não existe"
 
       - name: Create user apolinario with sudo
@@ -73,14 +75,21 @@ jobs:
           docker build -t debian-vps -f Dockerfile.debian .
           docker build -t ubuntu-vps -f Dockerfile.ubuntu .
 
-      - name: Pausar até faltar 4 minuto (4h56m parado)
+      - name: Pausar até faltar 1 minuto (4h56m)
         run: |
           echo "⏸️ Pausando por 17800 segundos (~4h56m)..."
-          sleep 17800   # 4h56m = 17800 segundos
+          sleep 17800   # 4h56m
+
+      - name: Sleep final (1 minuto restante)
+        run: |
+          echo "😴 Esperando 60 segundos finais..."
+          sleep 60
 
       - name: Debug - mostrar database.txt antes do backup
         run: |
+          echo "📂 Conteúdo da pasta teste2 antes do backup:"
           ls -lh $GITHUB_WORKSPACE/teste2/ || true
+          echo "📄 Conteúdo do database.txt:"
           cat $GITHUB_WORKSPACE/teste2/database.txt || echo "⚠️ database.txt não existe"
 
       - name: Backup VPS data (incluindo database.txt)
@@ -94,6 +103,14 @@ jobs:
           fi
           sudo chown -R $USER:$USER /opt/vps-backup
           zip -r backup.zip /opt/vps-backup
+
+      - name: Commit & push backup
+        run: |
+          git config --global user.name "Apolinario"
+          git config --global user.email "apolinario@example.com"
+          git add backup.zip
+          git commit -m "Atualizando backup da VPS"
+          git push https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste2.git
 
       - name: Upload VPS backup artifact
         uses: actions/upload-artifact@v4
