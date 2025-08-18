@@ -73,6 +73,11 @@ jobs:
           docker build -t debian-vps -f Dockerfile.debian .
           docker build -t ubuntu-vps -f Dockerfile.ubuntu .
 
+      - name: Pausar até faltar 2 minuto (4h58m parado)
+        run: |
+          echo "⏸️ Pausando por 17920 segundos (~4h58m)..."
+          sleep 17920   # 4h58m = 17920 segundos
+
       - name: Debug - mostrar database.txt antes do backup
         run: |
           ls -lh $GITHUB_WORKSPACE/teste2/ || true
@@ -95,13 +100,3 @@ jobs:
         with:
           name: vps-backup
           path: backup.zip
-
-      - name: Pausar até faltar 1 minuto (4h59m parado)
-        run: |
-          echo "⏸️ Pausando por 17940 segundos (~4h59m)..."
-          sleep 17940   # 4h59m = 17940 segundos
-
-      - name: Sleep final (1 minuto restante)
-        run: |
-          echo "😴 Esperando mais 60s..."
-          sleep 60
