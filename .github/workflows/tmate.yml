@@ -2,54 +2,45 @@ name: Apolinario
 
 on:
   schedule:
-    - cron: '0 */5 * * *'  # Every 5 hours
+    - cron: '0 */5 * * *'  # A cada 5 horas
   workflow_dispatch:
 
 jobs:
   vps-session:
     runs-on: ubuntu-latest
-    timeout-minutes: 300  # Just under 5 hours
+    timeout-minutes: 300  # 5 horas
 
     steps:
       - name: Checkout repo (teste)
         uses: actions/checkout@v4
 
-      - name: Set hostname to apolinario
+      - name: Set hostname
         run: sudo hostnamectl set-hostname apolinario
 
-      - name: Download VPS backup (if any)
-        uses: actions/download-artifact@v4
-        with:
-          name: vps-backup
-          path: ./backup
-        continue-on-error: true
-
-      - name: Install prerequisites
+      - name: Instalar dependências
         run: |
           sudo apt update
           sudo apt install -y tmate curl unzip sudo net-tools neofetch
 
-      - name: Restore backup files
+      - name: Restaurar backup (se existir)
         run: |
-          if [ -f ./backup/backup.zip ]; then
-            unzip -o ./backup/backup.zip -d /
+          if [ -f backup.zip ]; then
+            unzip -o backup.zip -d /
             echo "✅ Backup restaurado."
             if [ -f /opt/vps-backup/data/database.txt ]; then
               cp /opt/vps-backup/data/database.txt $GITHUB_WORKSPACE/database.txt
               echo "✅ database.txt restaurado no repo teste."
             fi
           else
-            echo "⚠️ Nenhum backup encontrado, iniciando do zero."
+            echo "⚠️ Nenhum backup.zip encontrado, iniciando do zero."
           fi
 
-      - name: Debug - mostrar database.txt depois do restore
+      - name: Debug - após restore
         run: |
-          echo "📂 Conteúdo da pasta teste:"
-          ls -lh $GITHUB_WORKSPACE/ || true
-          echo "📄 Conteúdo do database.txt:"
+          ls -lh $GITHUB_WORKSPACE || true
           cat $GITHUB_WORKSPACE/database.txt || echo "⚠️ database.txt não existe"
 
-      - name: Create user apolinario with sudo
+      - name: Criar usuário apolinario
         run: |
           if ! id -u apolinario >/dev/null 2>&1; then
             sudo useradd -m -s /bin/bash apolinario
@@ -58,11 +49,10 @@ jobs:
             echo "apolinario ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/apolinario
           fi
 
-      - name: Clone bot repo (teste2)
-        run: |
-          git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste2.git
+      - name: Clonar repo do bot (teste2)
+        run: git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste2.git
 
-      - name: Install Python deps and start bot
+      - name: Instalar dependências Python e iniciar bot
         run: |
           cd teste2
           pip install --upgrade pip
@@ -81,27 +71,27 @@ jobs:
       - name: Sleep final (1 minuto restante)
         run: sleep 60
 
-      - name: Debug - mostrar database.txt antes do backup
+      - name: Debug antes do backup
         run: |
-          echo "📂 Conteúdo da pasta teste antes do backup:"
-          ls -lh $GITHUB_WORKSPACE/ || true
-          echo "📄 Conteúdo do database.txt:"
+          ls -lh $GITHUB_WORKSPACE || true
           cat $GITHUB_WORKSPACE/database.txt || echo "⚠️ database.txt não existe"
 
-      - name: Backup VPS data (incluindo database.txt)
+      - name: Criar backup (incluindo database.txt)
         run: |
           sudo mkdir -p /opt/vps-backup/data
           if [ -f $GITHUB_WORKSPACE/database.txt ]; then
             sudo cp $GITHUB_WORKSPACE/database.txt /opt/vps-backup/data/
-            echo "✅ database.txt salvo no backup."
+            echo "✅ database.txt incluído no backup."
           else
-            echo "⚠️ Nenhum database.txt encontrado no momento do backup."
+            echo "⚠️ Nenhum database.txt encontrado."
           fi
           sudo chown -R $USER:$USER /opt/vps-backup
           zip -r backup.zip /opt/vps-backup
 
-      - name: Upload VPS backup artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vps-backup
-          path: backup.zip
+      - name: Commit & Push backup.zip
+        run: |
+          git config --global user.name "Apolinario"
+          git config --global user.email "apolinario@example.com"
+          git add backup.zip
+          git commit -m "Atualizando backup da VPS" || echo "Nada para commit"
+          git push https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste.git
