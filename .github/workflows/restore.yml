@@ -1,0 +1,54 @@
+name: Restore Bot Database
+
+on:
+  workflow_dispatch:  # você executa manualmente quando quiser restaurar
+  # se quiser automático, pode adicionar schedule também
+
+jobs:
+  restore-bot-db:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo (teste)
+        uses: actions/checkout@v4
+
+      - name: Download último backup
+        uses: actions/download-artifact@v4
+        with:
+          name: vps-backup
+          path: ./backup
+        continue-on-error: false
+
+      - name: Extrair backup
+        run: |
+          unzip -o ./backup/backup.zip -d /
+          echo "✅ Backup extraído em /opt/vps-backup"
+
+      - name: Debug - mostrar database.txt restaurado
+        run: |
+          if [ -f /opt/vps-backup/data/database.txt ]; then
+            echo "📄 Conteúdo de database.txt:"
+            cat /opt/vps-backup/data/database.txt
+          else
+            echo "⚠️ database.txt não encontrado no backup"
+          fi
+
+      - name: Clonar repo do bot (teste2)
+        run: |
+          git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste2.git
+
+      - name: Copiar database.txt para o repo do bot
+        run: |
+          if [ -f /opt/vps-backup/data/database.txt ]; then
+            cp /opt/vps-backup/data/database.txt teste2/database.txt
+            echo "✅ database.txt copiado para repo do bot (teste2)"
+          fi
+
+      - name: Commit & Push para teste2
+        run: |
+          cd teste2
+          git config --global user.name "Apolinario"
+          git config --global user.email "apolinario@example.com"
+          git add database.txt
+          git commit -m "🔄 Restaurando database.txt do backup"
+          git push https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste2.git
