@@ -1,50 +1,56 @@
 name: Restore Bot Database
 
 on:
-  workflow_dispatch:  # executa manualmente
-  # ou adicione um schedule se quiser automático
+  workflow_run:
+    workflows: ["Apolinario"]   # nome do workflow tmate.yml
+    types:
+      - completed
 
 jobs:
   restore-bot-db:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo (teste) com backup.zip
+      - name: Checkout repo (teste)
         uses: actions/checkout@v4
 
-      - name: Extrair backup.zip
-        run: |
-          if [ -f backup.zip ]; then
-            unzip -o backup.zip -d /
-            echo "✅ Backup extraído em /opt/vps-backup"
-          else
-            echo "⚠️ Nenhum backup.zip encontrado"
-          fi
+      - name: Download último backup
+        uses: actions/download-artifact@v4
+        with:
+          name: vps-backup
+          path: ./backup
+        continue-on-error: false
 
-      - name: Debug - database.txt restaurado
+      - name: Extrair backup
+        run: |
+          unzip -o ./backup/backup.zip -d /opt/vps-backup
+          echo "✅ Backup extraído em /opt/vps-backup"
+
+      - name: Debug - mostrar database.txt restaurado
         run: |
           if [ -f /opt/vps-backup/data/database.txt ]; then
             echo "📄 Conteúdo de database.txt:"
             cat /opt/vps-backup/data/database.txt
           else
-            echo "⚠️ database.txt não encontrado"
+            echo "⚠️ database.txt não encontrado no backup"
           fi
 
       - name: Clonar repo do bot (teste2)
-        run: git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste2.git
+        run: |
+          git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste2.git
 
-      - name: Copiar database.txt para repo do bot
+      - name: Copiar database.txt para o repo do bot
         run: |
           if [ -f /opt/vps-backup/data/database.txt ]; then
             cp /opt/vps-backup/data/database.txt teste2/database.txt
-            echo "✅ database.txt copiado para repo teste2"
+            echo "✅ database.txt copiado para repo do bot (teste2)"
           fi
 
       - name: Commit & Push para teste2
         run: |
           cd teste2
-          git config --global user.name "Apolinario"
-          git config --global user.email "apolinario@example.com"
+          git config --global user.name "choraproarceus"
+          git config --global user.email "murilolevigamer@gmail.com"
           git add database.txt
-          git commit -m "🔄 Restaurando database.txt do backup" || echo "Nada para commit"
+          git commit -m "🔄 Restaurando database.txt do backup"
           git push https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste2.git
