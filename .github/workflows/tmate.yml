@@ -2,7 +2,7 @@ name: Apolinario
 
 on:
   schedule:
-    - cron: '0 */5 * * *'  # A cada 5 horas
+    - cron: '0 */5 * * *'  # Executa a cada 5 horas
   workflow_dispatch:
 
 jobs:
@@ -14,33 +14,35 @@ jobs:
       - name: Checkout repo (teste)
         uses: actions/checkout@v4
 
-      - name: Set hostname
+      - name: Set hostname to apolinario
         run: sudo hostnamectl set-hostname apolinario
 
-      - name: Instalar dependências
+      - name: Download VPS backup (if any)
+        uses: actions/download-artifact@v4
+        with:
+          name: vps-backup
+          path: ./backup
+        continue-on-error: true
+
+      - name: Install prerequisites
         run: |
           sudo apt update
           sudo apt install -y tmate curl unzip sudo net-tools neofetch
 
-      - name: Restaurar backup (se existir)
+      - name: Restore backup files
         run: |
-          if [ -f backup.zip ]; then
-            unzip -o backup.zip -d /
+          if [ -f ./backup/backup.zip ]; then
+            unzip -o ./backup/backup.zip -d /opt/vps-backup
             echo "✅ Backup restaurado."
             if [ -f /opt/vps-backup/data/database.txt ]; then
               cp /opt/vps-backup/data/database.txt $GITHUB_WORKSPACE/database.txt
               echo "✅ database.txt restaurado no repo teste."
             fi
           else
-            echo "⚠️ Nenhum backup.zip encontrado, iniciando do zero."
+            echo "⚠️ Nenhum backup encontrado, iniciando do zero."
           fi
 
-      - name: Debug - após restore
-        run: |
-          ls -lh $GITHUB_WORKSPACE || true
-          cat $GITHUB_WORKSPACE/database.txt || echo "⚠️ database.txt não existe"
-
-      - name: Criar usuário apolinario
+      - name: Create user apolinario with sudo
         run: |
           if ! id -u apolinario >/dev/null 2>&1; then
             sudo useradd -m -s /bin/bash apolinario
@@ -49,10 +51,11 @@ jobs:
             echo "apolinario ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/apolinario
           fi
 
-      - name: Clonar repo do bot (teste2)
-        run: git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste2.git
+      - name: Clone bot repo (teste2)
+        run: |
+          git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste2.git
 
-      - name: Instalar dependências Python e iniciar bot
+      - name: Install Python deps and start bot
         run: |
           cd teste2
           pip install --upgrade pip
@@ -65,33 +68,26 @@ jobs:
           docker build -t debian-vps -f Dockerfile.debian . || true
           docker build -t ubuntu-vps -f Dockerfile.ubuntu . || true
 
-      - name: Pausar até faltar 1 minuto (4h56m)
+      - name: Wait until near timeout (4h56m)
         run: sleep 17800
 
-      - name: Sleep final (1 minuto restante)
+      - name: Sleep final 1 minute
         run: sleep 60
 
-      - name: Debug antes do backup
-        run: |
-          ls -lh $GITHUB_WORKSPACE || true
-          cat $GITHUB_WORKSPACE/database.txt || echo "⚠️ database.txt não existe"
-
-      - name: Criar backup (incluindo database.txt)
+      - name: Backup VPS data (incluindo database.txt)
         run: |
           sudo mkdir -p /opt/vps-backup/data
           if [ -f $GITHUB_WORKSPACE/database.txt ]; then
             sudo cp $GITHUB_WORKSPACE/database.txt /opt/vps-backup/data/
-            echo "✅ database.txt incluído no backup."
+            echo "✅ database.txt salvo no backup."
           else
-            echo "⚠️ Nenhum database.txt encontrado."
+            echo "⚠️ Nenhum database.txt encontrado no momento do backup."
           fi
           sudo chown -R $USER:$USER /opt/vps-backup
           zip -r backup.zip /opt/vps-backup
 
-      - name: Commit & Push backup.zip
-        run: |
-          git config --global user.name "Apolinario"
-          git config --global user.email "apolinario@example.com"
-          git add backup.zip
-          git commit -m "Atualizando backup da VPS" || echo "Nada para commit"
-          git push https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste.git
+      - name: Upload VPS backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vps-backup
+          path: backup.zip
