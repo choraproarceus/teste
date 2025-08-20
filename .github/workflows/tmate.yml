@@ -78,10 +78,10 @@ jobs:
       - name: Commit & push backup no repo (teste)
         run: |
           mkdir -p backups
-          cp backup.zip backups/latest.zip
           mv backup.zip backups/backup-$(date +'%Y-%m-%d_%H-%M').zip
+          cp backup.zip backups/latest.zip
           git config --global user.name "choraproarceus"
           git config --global user.email "murilolevigamer@gmail.com"
           git add backups/
-          git commit -m "🔄 Backup automático em $(date +'%Y-%m-%d %H:%M')" || echo "Nenhuma mudança para commit"
-          git push https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste.git
+          git commit -m "🔄 Backup automático em $(date +'%Y-%m-%d %H:%M')" || echo "⚠️ Nada para commitar"
+          git push https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste.git HEAD:main
