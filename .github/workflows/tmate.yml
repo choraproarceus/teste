@@ -29,17 +29,13 @@ jobs:
           sudo apt update
           sudo apt install -y tmate curl unzip sudo net-tools neofetch
 
-      - name: Restore backup files
+      - name: Restaurar backup do repo
         run: |
-          if [ -f ./backup/backup.zip ]; then
-            unzip -o ./backup/backup.zip -d /opt/vps-backup
-            echo "✅ Backup restaurado."
-            if [ -f /opt/vps-backup/data/database.txt ]; then
-              cp /opt/vps-backup/data/database.txt $GITHUB_WORKSPACE/database.txt
-              echo "✅ database.txt restaurado no repo teste."
-            fi
+          if [ -f .backups/backup.zip ]; then
+            unzip -o .backups/backup.zip -d /
+            echo "✅ Backup restaurado do repositório"
           else
-            echo "⚠️ Nenhum backup encontrado, iniciando do zero."
+            echo "⚠️ Nenhum backup.zip encontrado no repo!"
           fi
 
       - name: Create user apolinario with sudo
