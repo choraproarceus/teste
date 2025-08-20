@@ -46,11 +46,12 @@ jobs:
             echo "✅ database.txt copiado para repo do bot (teste2)"
           fi
 
-      - name: Commit & Push para teste2
+      - name: Commit & Push backup.zip no repo
         run: |
-          cd teste2
-          git config --global user.name "choraproarceus"
-          git config --global user.email "murilolevigamer@gmail.com"
-          git add database.txt
-          git commit -m "🔄 Restaurando database.txt do backup"
-          git push https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste2.git
+          git config --global user.name "Apolinario"
+          git config --global user.email "apolinario@example.com"
+          mkdir -p .backups
+          mv backup.zip .backups/backup.zip
+          git add .backups/backup.zip
+          git commit -m "🔄 Atualizando backup da VPS"
+          git push https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste.git
