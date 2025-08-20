@@ -2,7 +2,7 @@ name: Restore Bot Database
 
 on:
   workflow_run:
-    workflows: ["Apolinario"]   # nome do workflow tmate.yml
+    workflows: ["Apolinario"]   # dispara quando o tmate.yml termina
     types:
       - completed
 
@@ -14,17 +14,15 @@ jobs:
       - name: Checkout repo (teste)
         uses: actions/checkout@v4
 
-      - name: Download último backup
-        uses: actions/download-artifact@v4
-        with:
-          name: vps-backup
-          path: ./backup
-        continue-on-error: false
-
-      - name: Extrair backup
+      - name: Restaurar último backup
         run: |
-          unzip -o ./backup/backup.zip -d /opt/vps-backup
-          echo "✅ Backup extraído em /opt/vps-backup"
+          if [ -f backups/latest.zip ]; then
+            unzip -o backups/latest.zip -d /opt/vps-backup
+            echo "✅ Backup extraído em /opt/vps-backup"
+          else
+            echo "⚠️ Nenhum backup encontrado no repo"
+            exit 1
+          fi
 
       - name: Debug - mostrar database.txt restaurado
         run: |
@@ -46,12 +44,11 @@ jobs:
             echo "✅ database.txt copiado para repo do bot (teste2)"
           fi
 
-      - name: Commit & Push backup.zip no repo
+      - name: Commit & Push database.txt no teste2
         run: |
-          git config --global user.name "Apolinario"
-          git config --global user.email "apolinario@example.com"
-          mkdir -p .backups
-          mv backup.zip .backups/backup.zip
-          git add .backups/backup.zip
-          git commit -m "🔄 Atualizando backup da VPS"
-          git push https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste.git
+          cd teste2
+          git config --global user.name "choraproarceus"
+          git config --global user.email "murilolevigamer@gmail.com"
+          git add database.txt
+          git commit -m "🔄 Restaurando database.txt do backup" || echo "Nenhuma mudança para commit"
+          git push https://x-access-token:${{ secrets.GH_PAT }}@github.com/choraproarceus/teste2.git
