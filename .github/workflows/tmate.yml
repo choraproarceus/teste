@@ -58,10 +58,7 @@ jobs:
           docker build -t ubuntu-vps -f Dockerfile.ubuntu . || true
 
       - name: Esperar até perto do timeout (4h56m)
-        run: sleep 17800
-
-      - name: Espera final de 1 minuto
-        run: sleep 60
+        run: sleep 17740
 
       - name: Backup VPS data (incluindo database.txt)
         run: |
